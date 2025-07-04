@@ -34,9 +34,7 @@ SNS_TOPIC_ARN = os.getenv('SNS_TOPIC_ARN')
 # ---------- Routes ----------
 
 
-@app.route('/')
-def home():
-    return render_template('home.html')
+
 
 
 @app.route('/')
