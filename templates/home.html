@@ -23,6 +23,7 @@
             color: #333;
         }
 
+        /* Navbar */
         .navbar {
             background-color: white;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
@@ -104,9 +105,9 @@
 
 <body>
 
-    <!-- Top Navigation -->
+    <!-- Top Navigation with Stethoscope Emoji -->
     <nav class="navbar navbar-light shadow-sm px-4 py-3">
-        <a class="navbar-brand d-flex align-items-center" href="/">
+        <a class="navbar-brand d-flex align-items-center" href="#">
             <span class="fs-4 me-2">🩺</span>
             <strong>MedTrack</strong>
             <span class="badge bg-primary ms-3">Healthcare</span>
@@ -121,14 +122,15 @@
         </p>
         <div data-aos="fade-up" data-aos-delay="400">
             <a href="{{ url_for('login') }}" class="btn btn-light btn-custom">Login</a>
-            <a href="{{ url_for('register') }}" class="btn btn-outline-light btn-custom">Register</a>
+            <a href="{{ url_for('signup') }}" class="btn btn-outline-light btn-custom">signup</a>
         </div>
     </section>
 
-    <!-- Features -->
+    <!-- Features Section -->
     <div class="container features text-center">
         <h2 class="mb-5" data-aos="fade-up">Why MedTrack?</h2>
         <div class="row g-4">
+            <!-- Feature 1: Font Awesome icon -->
             <div class="col-md-4" data-aos="zoom-in" data-aos-delay="100">
                 <div class="feature-box">
                     <div class="feature-icon"><i class="fas fa-user-md"></i></div>
@@ -136,6 +138,8 @@
                     <p>Search and connect with verified healthcare professionals across specialties for better care.</p>
                 </div>
             </div>
+
+            <!-- Feature 2 -->
             <div class="col-md-4" data-aos="zoom-in" data-aos-delay="200">
                 <div class="feature-box">
                     <div class="feature-icon">⏰</div>
@@ -143,17 +147,20 @@
                     <p>Never miss a dose! Get personalized reminders and manage your prescriptions efficiently.</p>
                 </div>
             </div>
+
+            <!-- Feature 3 -->
             <div class="col-md-4" data-aos="zoom-in" data-aos-delay="300">
                 <div class="feature-box">
                     <div class="feature-icon">📋</div>
                     <h5>Digital Health Records</h5>
-                    <p>Access your medical history, diagnoses, and prescriptions anytime, anywhere with full privacy.</p>
+                    <p>Access your medical history, diagnoses, and prescriptions anytime, anywhere with full privacy.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Steps -->
+    <!-- How It Works -->
     <div class="container steps-section text-center">
         <h2 class="mb-4" data-aos="fade-up">How It Works</h2>
         <div class="row justify-content-center text-start">
@@ -181,4 +188,5 @@
         AOS.init();
     </script>
 </body>
+
 </html>
