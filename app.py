@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from dotenv import load_dotenv
 import boto3
@@ -13,7 +12,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 
-# ---------- AWS DynamoDB Configuration ----------
+# AWS DynamoDB Configuration
 dynamodb = boto3.resource(
     'dynamodb',
     region_name=os.getenv('AWS_REGION'),
@@ -23,7 +22,7 @@ dynamodb = boto3.resource(
 USERS_TABLE = dynamodb.Table('Users')
 APPOINTMENTS_TABLE = dynamodb.Table('Appointments')
 
-# ---------- AWS SNS Configuration ----------
+# AWS SNS Configuration
 sns = boto3.client(
     'sns',
     region_name=os.getenv('AWS_REGION'),
@@ -32,25 +31,10 @@ sns = boto3.client(
 )
 SNS_TOPIC_ARN = os.getenv('SNS_TOPIC_ARN')
 
-# ---------- Routes ----------
-
+# Routes
 @app.route('/')
-def home():
-    return render_template('home.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        resp = USERS_TABLE.get_item(Key={'username': username})
-        user = resp.get('Item')
-        if user and user['password'] == password:
-            session['username'] = username
-            session['role'] = user['role']
-            return redirect(f"/{user['role']}")
-        return "Invalid login"
-    return render_template('login.html')
+def index():
+    return render_template('index.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -63,16 +47,36 @@ def signup():
                 Item={'username': username, 'password': password, 'role': role},
                 ConditionExpression='attribute_not_exists(username)'
             )
-            flash("Registered successfully! You can now log in.")
-            return redirect('/login')
+            flash("Signup successful! You can now log in.")
+            return redirect(url_for('login'))
         except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
             return "User already exists!"
     return render_template('signup.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    # Optional route, alternate to signup
+    return redirect(url_for('signup'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form['role']
+        resp = USERS_TABLE.get_item(Key={'username': username})
+        user = resp.get('Item')
+        if user and user['password'] == password and user['role'] == role:
+            session['username'] = username
+            session['role'] = role
+            return redirect(f"/{role}")
+        return "Invalid login"
+    return render_template('login.html')
+
 @app.route('/patient')
 def patient_dashboard():
     if session.get('role') != 'patient':
-        return redirect('/login')
+        return redirect(url_for('login'))
     resp = APPOINTMENTS_TABLE.scan(
         FilterExpression=Attr('patient_name').eq(session['username'])
     )
@@ -142,8 +146,7 @@ def respond(id):
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect('/login')
+    return redirect(url_for('login'))
 
-# Run the application
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
