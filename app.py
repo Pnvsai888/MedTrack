@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from dotenv import load_dotenv
 import boto3
@@ -33,7 +32,6 @@ sns = boto3.client(
 SNS_TOPIC_ARN = os.getenv('SNS_TOPIC_ARN')
 
 # ---------- Routes ----------
-
 @app.route('/')
 def home():
     return render_template('home.html')
@@ -50,7 +48,7 @@ def register():
                 ConditionExpression='attribute_not_exists(username)'
             )
             flash("Registered successfully! You can now log in.")
-            return redirect('/login')
+            return redirect(url_for('login'))
         except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
             return "User already exists!"
     return render_template('register.html')
@@ -65,14 +63,14 @@ def login():
         if user and user['password'] == password:
             session['username'] = username
             session['role'] = user['role']
-            return redirect(f"/{user['role']}")
+            return redirect(url_for(user['role']))
         return "Invalid login"
     return render_template('login.html')
 
 @app.route('/patient')
-def patient_dashboard():
+def patient():
     if session.get('role') != 'patient':
-        return redirect('/login')
+        return redirect(url_for('login'))
     resp = APPOINTMENTS_TABLE.scan(
         FilterExpression=Attr('patient_name').eq(session['username'])
     )
@@ -81,9 +79,9 @@ def patient_dashboard():
     return render_template('patient_dashboard.html', username=session['username'], appointments=appointments)
 
 @app.route('/book', methods=['GET', 'POST'])
-def book_appointment():
+def book():
     if session.get('role') != 'patient':
-        return redirect('/login')
+        return redirect(url_for('login'))
     if request.method == 'POST':
         appt_id = str(uuid.uuid4())
         item = {
@@ -107,13 +105,13 @@ def book_appointment():
         except Exception as e:
             print(f"SNS Error: {e}")
         flash("Appointment booked successfully!")
-        return redirect('/patient')
+        return redirect(url_for('patient'))
     return render_template('book_appointment.html')
 
 @app.route('/doctor')
-def doctor_dashboard():
+def doctor():
     if session.get('role') != 'doctor':
-        return redirect('/login')
+        return redirect(url_for('login'))
     resp = APPOINTMENTS_TABLE.scan()
     appointments = resp.get('Items', [])
     appointments.sort(key=lambda x: x['created_at'], reverse=True)
@@ -125,7 +123,7 @@ def doctor_dashboard():
 @app.route('/respond/<id>', methods=['GET', 'POST'])
 def respond(id):
     if session.get('role') != 'doctor':
-        return redirect('/login')
+        return redirect(url_for('login'))
     if request.method == 'POST':
         response_text = request.form['response']
         APPOINTMENTS_TABLE.update_item(
@@ -134,7 +132,7 @@ def respond(id):
             ExpressionAttributeNames={'#s': 'status'},
             ExpressionAttributeValues={':s': 'Solved', ':r': response_text}
         )
-        return redirect('/doctor')
+        return redirect(url_for('doctor'))
     resp = APPOINTMENTS_TABLE.get_item(Key={'id': id})
     appointment = resp.get('Item')
     return render_template('respond.html', appointment=appointment)
@@ -142,8 +140,7 @@ def respond(id):
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect('/login')
+    return redirect(url_for('login'))
 
-# Run the application
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
