@@ -1,10 +1,11 @@
+# app.py
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from dotenv import load_dotenv
 import boto3
 import os
 import uuid
 from datetime import datetime
-from boto3.dynamodb.conditions import Attr  # ✅ Required for filter expressions
+from boto3.dynamodb.conditions import Attr
 
 # Load environment variables from .env file
 load_dotenv()
@@ -33,32 +34,9 @@ SNS_TOPIC_ARN = os.getenv('SNS_TOPIC_ARN')
 
 # ---------- Routes ----------
 
-
-
-
-
 @app.route('/')
 def home():
-    return redirect('/login')
-
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        role = request.form['role']
-        try:
-            USERS_TABLE.put_item(
-                Item={'username': username, 'password': password, 'role': role},
-                ConditionExpression='attribute_not_exists(username)'
-            )
-            flash("Registered successfully! You can now log in.")
-            return redirect('/login')
-        except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
-            return "User already exists!"
-    return render_template('register.html')
-
+    return render_template('home.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -74,6 +52,22 @@ def login():
         return "Invalid login"
     return render_template('login.html')
 
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form['role']
+        try:
+            USERS_TABLE.put_item(
+                Item={'username': username, 'password': password, 'role': role},
+                ConditionExpression='attribute_not_exists(username)'
+            )
+            flash("Registered successfully! You can now log in.")
+            return redirect('/login')
+        except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
+            return "User already exists!"
+    return render_template('signup.html')
 
 @app.route('/patient')
 def patient_dashboard():
@@ -85,7 +79,6 @@ def patient_dashboard():
     appointments = resp.get('Items', [])
     appointments.sort(key=lambda x: x['created_at'], reverse=True)
     return render_template('patient_dashboard.html', username=session['username'], appointments=appointments)
-
 
 @app.route('/book', methods=['GET', 'POST'])
 def book_appointment():
@@ -117,7 +110,6 @@ def book_appointment():
         return redirect('/patient')
     return render_template('book_appointment.html')
 
-
 @app.route('/doctor')
 def doctor_dashboard():
     if session.get('role') != 'doctor':
@@ -129,7 +121,6 @@ def doctor_dashboard():
     pending = sum(1 for a in appointments if a['status'] == 'Pending')
     solved = total - pending
     return render_template('doctor_dashboard.html', appointments=appointments, total=total, pending=pending, solved=solved)
-
 
 @app.route('/respond/<id>', methods=['GET', 'POST'])
 def respond(id):
@@ -148,12 +139,10 @@ def respond(id):
     appointment = resp.get('Item')
     return render_template('respond.html', appointment=appointment)
 
-
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect('/login')
-
 
 # Run the application
 if __name__ == '__main__':
