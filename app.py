@@ -4,11 +4,12 @@ import boto3
 import os
 import uuid
 from datetime import datetime
+from boto3.dynamodb.conditions import Attr
 
 # Load environment variables from .env file
 load_dotenv()
 
-app = Flask(_name_)
+app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 
 # ---------- AWS DynamoDB Configuration ----------
@@ -31,6 +32,7 @@ sns = boto3.client(
 SNS_TOPIC_ARN = os.getenv('SNS_TOPIC_ARN')
 
 # ---------- Routes ----------
+
 @app.route('/')
 def home():
     return redirect('/login')
@@ -46,10 +48,11 @@ def register():
                 Item={'username': username, 'password': password, 'role': role},
                 ConditionExpression='attribute_not_exists(username)'
             )
-            flash("Registered successfully! You can now log in.")
+            flash("Registered successfully! You can now log in.", 'success')
             return redirect('/login')
         except dynamodb.meta.client.exceptions.ConditionalCheckFailedException:
-            return "User already exists!"
+            flash("User already exists!", 'danger')
+            return redirect('/register')
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -63,18 +66,24 @@ def login():
             session['username'] = username
             session['role'] = user['role']
             return redirect(f"/{user['role']}")
-        return "Invalid login"
+        flash("Invalid username or password", 'danger')
+        return redirect('/login')
     return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/login')
 
 @app.route('/patient')
 def patient_dashboard():
     if session.get('role') != 'patient':
         return redirect('/login')
     resp = APPOINTMENTS_TABLE.scan(
-        FilterExpression=boto3.dynamodb.conditions.Attr('patient_name').eq(session['username'])
+        FilterExpression=Attr('patient_name').eq(session['username'])
     )
     appointments = resp.get('Items', [])
-    appointments.sort(key=lambda x: x['created_at'], reverse=True)
+    appointments.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     return render_template('patient_dashboard.html', username=session['username'], appointments=appointments)
 
 @app.route('/book', methods=['GET', 'POST'])
@@ -95,6 +104,8 @@ def book_appointment():
             'created_at': datetime.utcnow().isoformat()
         }
         APPOINTMENTS_TABLE.put_item(Item=item)
+
+        # SNS Notification
         try:
             sns.publish(
                 TopicArn=SNS_TOPIC_ARN,
@@ -103,7 +114,8 @@ def book_appointment():
             )
         except Exception as e:
             print(f"SNS Error: {e}")
-        flash("Appointment booked successfully!")
+        
+        flash("Appointment booked successfully!", 'success')
         return redirect('/patient')
     return render_template('book_appointment.html')
 
@@ -113,34 +125,12 @@ def doctor_dashboard():
         return redirect('/login')
     resp = APPOINTMENTS_TABLE.scan()
     appointments = resp.get('Items', [])
-    appointments.sort(key=lambda x: x['created_at'], reverse=True)
+    appointments.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     total = len(appointments)
     pending = sum(1 for a in appointments if a['status'] == 'Pending')
     solved = total - pending
-    return render_template('doctor_dashboard.html', appointments=appointments, total=total, pending=pending, solved=solved)
+    return render_template('doctor_dashboard.html', username=session['username'], appointments=appointments, total=total, pending=pending, solved=solved)
 
-@app.route('/respond/<id>', methods=['GET', 'POST'])
-def respond(id):
-    if session.get('role') != 'doctor':
-        return redirect('/login')
-    if request.method == 'POST':
-        response_text = request.form['response']
-        APPOINTMENTS_TABLE.update_item(
-            Key={'id': id},
-            UpdateExpression="SET #s = :s, response = :r",
-            ExpressionAttributeNames={'#s': 'status'},
-            ExpressionAttributeValues={':s': 'Solved', ':r': response_text}
-        )
-        return redirect('/doctor')
-    resp = APPOINTMENTS_TABLE.get_item(Key={'id': id})
-    appointment = resp.get('Item')
-    return render_template('respond.html', appointment=appointment)
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/login')
-
-# Run the application
+# ---------- Run Server ----------
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
