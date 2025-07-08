@@ -6,53 +6,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Register | MedTrack</title>
 
-    <!-- Google Fonts & Bootstrap -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+    <!-- Google Fonts, Bootstrap, Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
     <style>
         body {
-            margin: 0;
             font-family: 'Poppins', sans-serif;
-            height: 100vh;
+            background: radial-gradient(circle at top left, #f0f4ff, #ffffff);
             display: flex;
-            align-items: center;
             justify-content: center;
-            background-color: #f4f6f9;
+            align-items: center;
+            min-height: 100vh;
             overflow: hidden;
-        }
-
-        body::before {
-            content: "";
-            position: absolute;
-            top: -50px;
-            left: -50px;
-            width: 200%;
-            height: 200%;
-            background-image: radial-gradient(#e0e7ff 1px, transparent 1px);
-            background-size: 40px 40px;
-            opacity: 0.2;
-            z-index: -1;
-            animation: movePattern 20s linear infinite;
-        }
-
-        @keyframes movePattern {
-            0% {
-                transform: translate(0, 0);
-            }
-
-            100% {
-                transform: translate(40px, 40px);
-            }
+            padding: 1rem;
         }
 
         .register-card {
-            background: white;
-            border-radius: 15px;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
             padding: 2.5rem;
             width: 100%;
-            max-width: 420px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            max-width: 460px;
             animation: fadeIn 0.6s ease;
         }
 
@@ -79,17 +56,10 @@
             border-radius: 10px;
             padding: 0.75rem;
             font-size: 1rem;
-            border: 1px solid #ccc;
-            transition: border-color 0.3s;
-        }
-
-        .form-control:focus {
-            border-color: #6366f1;
-            box-shadow: none;
         }
 
         .btn-success {
-            background-color: #10b981;
+            background: linear-gradient(to right, #22c55e, #16a34a);
             border: none;
             border-radius: 10px;
             padding: 0.7rem;
@@ -98,7 +68,6 @@
         }
 
         .btn-success:hover {
-            background-color: #059669;
             transform: scale(1.03);
         }
 
@@ -111,30 +80,68 @@
             color: #000;
         }
 
-        .role-options {
+        /* Stylish pill toggle */
+        .role-toggle {
+            position: relative;
             display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 1rem;
+            justify-content: space-between;
+            background: #e0e7ff;
+            border-radius: 50px;
+            padding: 6px;
+            margin-bottom: 2rem;
         }
 
-        .role-options input[type="radio"] {
+        .role-toggle input[type="radio"] {
             display: none;
         }
 
-        .role-options label {
-            padding: 8px 20px;
+        .role-toggle label {
+            flex: 1;
+            text-align: center;
+            padding: 10px 0;
             border-radius: 50px;
-            border: 2px solid #6366f1;
-            color: #6366f1;
             cursor: pointer;
-            transition: all 0.3s ease;
+            z-index: 2;
             font-weight: 500;
+            color: #4f46e5;
+            transition: color 0.3s ease;
+            position: relative;
         }
 
-        .role-options input[type="radio"]:checked+label {
+        .role-highlight {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 48%;
+            height: calc(100% - 8px);
             background-color: #6366f1;
+            border-radius: 50px;
+            z-index: 1;
+            transition: transform 0.3s ease;
+        }
+
+        .role-toggle input[type="radio"]#doctor:checked~.role-highlight {
+            transform: translateX(100%);
+        }
+
+        .role-toggle input[type="radio"]#patient:checked~.role-highlight {
+            transform: translateX(0%);
+        }
+
+        .role-toggle input[type="radio"]:checked+label {
             color: white;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast .toast-body i {
+            margin-right: 6px;
         }
     </style>
 </head>
@@ -143,22 +150,54 @@
     <div class="register-card">
         <h4>Create Your MedTrack Account</h4>
         <form method="POST">
+            <!-- Role Selection Pills -->
+            <div class="role-toggle">
+                <input type="radio" id="patient" name="role" value="patient" required />
+                <label for="patient"><i class="fas fa-user-injured"></i> Patient</label>
+
+                <input type="radio" id="doctor" name="role" value="doctor" />
+                <label for="doctor"><i class="fas fa-user-md"></i> Doctor</label>
+
+                <div class="role-highlight"></div>
+            </div>
+
             <div class="mb-3">
                 <input type="text" name="username" class="form-control" placeholder="Username" required />
             </div>
+
             <div class="mb-3">
                 <input type="password" name="password" class="form-control" placeholder="Password" required />
             </div>
 
-            <!-- Role Selection -->
-            <div class="role-options mb-3">
-                <div>
-                    <input type="radio" id="patient" name="role" value="patient" required />
-                    <label for="patient">Patient</label>
+            <!-- Doctor-only Fields -->
+            <div id="doctorFields" style="display: none">
+                <div class="mb-3">
+                    <select name="specialization" class="form-control">
+                        <option value="">Select Specialization</option>
+                        <option value="General Physician">General Physician</option>
+                        <option value="Dentist">Dentist</option>
+                        <option value="Cardiologist">Cardiologist</option>
+                        <option value="Neurologist">Neurologist</option>
+                        <option value="Orthopedic">Orthopedic</option>
+                        <option value="Dermatologist">Dermatologist</option>
+                        <option value="ENT">ENT (Ear, Nose, Throat)</option>
+                        <option value="Gastroenterologist">Gastroenterologist</option>
+                        <option value="Psychiatrist">Psychiatrist</option>
+                        <option value="Urologist">Urologist</option>
+                        <option value="Pulmonologist">Pulmonologist</option>
+                        <option value="Oncologist">Oncologist</option>
+                        <option value="Nephrologist">Nephrologist</option>
+                        <option value="Pediatrician">Pediatrician</option>
+                        <option value="Gynecologist">Gynecologist</option>
+                        <option value="Endocrinologist">Endocrinologist</option>
+                        <option value="Rheumatologist">Rheumatologist</option>
+                        <option value="Ophthalmologist">Ophthalmologist</option>
+                        <option value="Allergist">Allergist/Immunologist</option>
+                        <option value="Hematologist">Hematologist</option>
+                    </select>
                 </div>
-                <div>
-                    <input type="radio" id="doctor" name="role" value="doctor" />
-                    <label for="doctor">Doctor</label>
+                <div class="mb-3">
+                    <input type="number" name="experience" class="form-control" placeholder="Experience (in years)" />
                 </div>
             </div>
 
@@ -169,6 +208,47 @@
             </div>
         </form>
     </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="toast align-items-center text-white bg-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'info' }} show"
+            role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3500" data-bs-autohide="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i
+                        class="fas fa-{{ 'check-circle' if category == 'success' else 'times-circle' if category == 'danger' else 'info-circle' }}"></i>
+                    {{ message }}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Close"></button>
+            </div>
+        </div>
+        {% endfor %}
+        {% endwith %}
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        window.addEventListener("DOMContentLoaded", () => {
+            const doctorRadio = document.getElementById("doctor");
+            const patientRadio = document.getElementById("patient");
+            const doctorFields = document.getElementById("doctorFields");
+
+            function toggleDoctorFields() {
+                doctorFields.style.display = doctorRadio.checked ? "block" : "none";
+            }
+
+            doctorRadio.addEventListener("change", toggleDoctorFields);
+            patientRadio.addEventListener("change", toggleDoctorFields);
+            toggleDoctorFields();
+
+            const toasts = document.querySelectorAll(".toast");
+            toasts.forEach((toast) => new bootstrap.Toast(toast).show());
+        });
+    </script>
 </body>
 
 </html>
